@@ -105,3 +105,77 @@ pollStatus();
 sendHeartbeat();
 setInterval(pollStatus, STATUS_POLL_MS);
 setInterval(sendHeartbeat, HEARTBEAT_INTERVAL_MS);
+
+// ---------------- check for updates ----------------
+// The one deliberate exception to "nothing leaves your machine" — only
+// runs when you click the button below, never automatically.
+
+const REMOTE_PACKAGE_JSON_URL = 'https://raw.githubusercontent.com/hariPrasadCoder/claude-game/main/package.json';
+const updateCheckBtn = document.getElementById('update-check-btn');
+const updateStatusEl = document.getElementById('update-status');
+
+function compareSemver(a, b) {
+  const pa = a.split('.').map(Number);
+  const pb = b.split('.').map(Number);
+  for (let i = 0; i < 3; i++) {
+    const diff = (pa[i] || 0) - (pb[i] || 0);
+    if (diff !== 0) return diff;
+  }
+  return 0;
+}
+
+async function checkForUpdates() {
+  updateStatusEl.classList.remove('error');
+  updateStatusEl.textContent = 'checking…';
+  try {
+    const [local, remote] = await Promise.all([
+      fetch('/api/version').then((r) => r.json()),
+      fetch(REMOTE_PACKAGE_JSON_URL).then((r) => r.json()),
+    ]);
+    if (compareSemver(remote.version, local.version) > 0) {
+      updateStatusEl.textContent = `v${remote.version} available — `;
+      const btn = document.createElement('button');
+      btn.className = 'update-now-btn';
+      btn.textContent = 'update now';
+      btn.addEventListener('click', applyUpdate);
+      updateStatusEl.appendChild(btn);
+    } else {
+      updateStatusEl.textContent = `up to date (v${local.version})`;
+    }
+  } catch (_) {
+    updateStatusEl.classList.add('error');
+    updateStatusEl.textContent = "couldn't check — offline, or GitHub is unreachable";
+  }
+}
+
+async function applyUpdate() {
+  updateStatusEl.classList.remove('error');
+  updateStatusEl.textContent = 'updating… this can take a moment';
+  try {
+    const res = await fetch('/api/self-update', { method: 'POST' });
+    const data = await res.json();
+    if (!data.ok) {
+      updateStatusEl.classList.add('error');
+      updateStatusEl.textContent = `update failed: ${data.error}`;
+      return;
+    }
+    updateStatusEl.textContent = 'updated — reconnecting…';
+    // The server restarts itself after this response; poll until it's
+    // back, then hard-reload to pick up fresh HTML/CSS/JS too.
+    const waitForServer = setInterval(async () => {
+      try {
+        await fetch('/api/status');
+        clearInterval(waitForServer);
+        location.reload();
+      } catch (_) {
+        // still restarting — keep waiting
+      }
+    }, 500);
+    setTimeout(() => clearInterval(waitForServer), 30_000); // give up eventually
+  } catch (_) {
+    updateStatusEl.classList.add('error');
+    updateStatusEl.textContent = 'update request failed';
+  }
+}
+
+updateCheckBtn.addEventListener('click', checkForUpdates);

@@ -50,3 +50,36 @@ jobs:
           [ "$(curl -s http://127.0.0.1:47821/api/status | node -pe 'JSON.parse(require("fs").readFileSync(0)).status')" = "working" ]
           echo '{"session_id":"ci-1","hook_event_name":"SessionEnd"}' | node hooks/on-session-end.js
           kill $SERVER_PID
+
+      - name: Version endpoint and Notification (waiting) hook
+        run: |
+          node server.js &
+          SERVER_PID=$!
+          for i in $(seq 1 20); do
+            curl -sf http://127.0.0.1:47821/api/status > /dev/null && break
+            sleep 0.2
+          done
+          curl -sf http://127.0.0.1:47821/api/version
+          echo '{"session_id":"ci-2","hook_event_name":"UserPromptSubmit"}' | node hooks/on-prompt-submit.js
+          echo '{"session_id":"ci-2","hook_event_name":"Stop"}' | node hooks/on-stop.js
+          [ "$(curl -s http://127.0.0.1:47821/api/status | node -pe 'JSON.parse(require("fs").readFileSync(0)).status')" = "done" ]
+          echo '{"session_id":"ci-2","hook_event_name":"Notification"}' | node hooks/on-notification.js
+          [ "$(curl -s http://127.0.0.1:47821/api/status | node -pe 'JSON.parse(require("fs").readFileSync(0)).status')" = "waiting" ]
+          kill $SERVER_PID
+
+      - name: Self-update restarts cleanly (git pull path, since actions/checkout is a real clone)
+        run: |
+          node server.js &
+          for i in $(seq 1 20); do
+            curl -sf http://127.0.0.1:47821/api/status > /dev/null && break
+            sleep 0.2
+          done
+          curl -s -X POST http://127.0.0.1:47821/api/self-update | tee /tmp/self-update-response.json
+          node -e 'const r=JSON.parse(require("fs").readFileSync("/tmp/self-update-response.json")); if(!r.ok) throw new Error("self-update failed: "+r.error)'
+          sleep 1
+          for i in $(seq 1 20); do
+            curl -sf http://127.0.0.1:47821/api/status > /dev/null && break
+            sleep 0.3
+          done
+          curl -sf http://127.0.0.1:47821/api/status
+          kill "$(cat ~/.claude-game/run/server.pid)"

@@ -1,7 +1,7 @@
 {
   "name": "claude-game",
-  "version": "1.0.0",
-  "description": "A lightweight, terminal-styled mini-game (Tic-Tac-Toe, Wordle, Snake) that pops up in your browser while Claude Code is working, and settles into a done state when it finishes.",
+  "version": "1.1.0",
+  "description": "A lightweight, terminal-styled mini-game (Tic-Tac-Toe, Wordle, Snake, Connect Four) that pops up in your browser while Claude Code is working, and settles into a done state when it finishes.",
   "license": "MIT",
   "author": "HARI PRASAD",
   "homepage": "https://github.com/hariPrasadCoder/claude-game#readme",

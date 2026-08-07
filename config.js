@@ -5,10 +5,15 @@
 const os = require('os');
 const path = require('path');
 
-const RUN_DIR = path.join(os.homedir(), '.claude-game', 'run');
+// Overridable via env vars — mainly so a second, fully isolated instance
+// can run for local testing (a self-respawned server inherits process.env
+// automatically, so this also works cleanly through a self-update restart,
+// unlike monkey-patching this module's exports from a wrapper script).
+const PORT = process.env.CLAUDE_GAME_PORT ? Number(process.env.CLAUDE_GAME_PORT) : 47821;
+const RUN_DIR = process.env.CLAUDE_GAME_RUN_DIR || path.join(os.homedir(), '.claude-game', 'run');
 
 module.exports = {
-  PORT: 47821,
+  PORT,
   HOST: '127.0.0.1',
   RUN_DIR,
   PID_FILE: path.join(RUN_DIR, 'server.pid'),

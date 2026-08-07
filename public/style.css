@@ -151,6 +151,41 @@ body {
   color: var(--text-dim);
 }
 
+.update-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px 10px;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+.update-check-btn {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.update-check-btn:hover { color: var(--accent); }
+.update-status { color: var(--text-dim); }
+.update-status .update-now-btn {
+  background: none;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 1px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  margin-left: 4px;
+}
+.update-status .update-now-btn:hover { background: var(--accent-dim); }
+.update-status.error { color: var(--amber); }
+
 .back-btn {
   background: none;
   border: 1px solid var(--border);

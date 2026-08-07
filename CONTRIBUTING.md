@@ -100,6 +100,10 @@ Claude's output.
   useful).
 - If you're adding a dependency, open an issue first to discuss — it's a
   high bar for a project this small, not a blanket "no."
+- Bump the `version` in `package.json` for any user-visible change. The
+  in-app "check for updates" button compares your installed version
+  against `package.json` on `main` — if it doesn't move, existing
+  installs won't ever see your change as an available update.
 
 ## Reporting bugs / ideas
 

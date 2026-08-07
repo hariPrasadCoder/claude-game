@@ -8,7 +8,10 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const { execFile, spawn } = require('child_process');
 const cfg = require('./config');
+
+const REPO_URL_SPEC = 'github:hariPrasadCoder/claude-game';
 
 // ---------------------------------------------------------------------
 // State
@@ -151,6 +154,61 @@ function handleEvent(req, res) {
   });
 }
 
+function handleVersion(req, res) {
+  try {
+    const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
+    res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ version: pkg.version }));
+  } catch (e) {
+    res.writeHead(500, { 'Content-Type': 'application/json' }).end('{"error":"could not read local version"}');
+  }
+}
+
+// The one deliberate exception to "nothing leaves your machine" — only
+// runs on an explicit click of "update now" in the UI, never automatically.
+// Two install shapes, two update mechanisms:
+//   - a real git clone (has .git) -> `git pull --ff-only`
+//   - the npx-installed stable copy (no .git, see install.js) -> re-run
+//     the npx one-liner, which re-fetches and overwrites this same
+//     ~/.claude-game/app location it's already running from
+function handleSelfUpdate(req, res) {
+  const isGitClone = fs.existsSync(path.join(__dirname, '.git'));
+  const [cmd, args, timeout] = isGitClone
+    ? ['git', ['pull', '--ff-only'], 30_000]
+    : ['npx', ['--yes', REPO_URL_SPEC, 'install'], 90_000];
+
+  execFile(cmd, args, { cwd: __dirname, timeout }, (err, stdout, stderr) => {
+    if (err) {
+      const message = (stderr || err.message || 'update failed').toString().slice(0, 500);
+      res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ ok: false, error: message }));
+      return;
+    }
+
+    res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ ok: true, method: isGitClone ? 'git' : 'npx' }));
+
+    // Give the response time to actually flush to the client before we
+    // pull the rug out from under this process. The new code is already
+    // on disk at this point — we just need a fresh Node process to load
+    // it, since Node caches modules in memory.
+    setTimeout(() => {
+      server.close(() => {
+        try {
+          const logFd = fs.openSync(cfg.LOG_FILE, 'a');
+          const child = spawn(process.execPath, [path.join(__dirname, 'server.js')], {
+            detached: true,
+            stdio: ['ignore', logFd, logFd],
+          });
+          child.on('error', () => {});
+          child.unref();
+        } catch (_) {
+          // Even if respawning fails here, the next UserPromptSubmit hook
+          // will spawn a fresh (now-updated) server anyway.
+        }
+        cleanupAndExit(0);
+      });
+    }, 200);
+  });
+}
+
 // ---------------------------------------------------------------------
 // Server
 // ---------------------------------------------------------------------
@@ -158,8 +216,10 @@ function handleEvent(req, res) {
 const server = http.createServer((req, res) => {
   const url = req.url || '/';
   if (req.method === 'GET' && url.startsWith('/api/status')) return handleStatus(req, res);
+  if (req.method === 'GET' && url.startsWith('/api/version')) return handleVersion(req, res);
   if (req.method === 'POST' && url.startsWith('/api/heartbeat')) return handleHeartbeat(req, res);
   if (req.method === 'POST' && url.startsWith('/api/event')) return handleEvent(req, res);
+  if (req.method === 'POST' && url.startsWith('/api/self-update')) return handleSelfUpdate(req, res);
   if (req.method === 'GET') return serveStatic(req, res, url);
   res.writeHead(405).end('Method not allowed');
 });
