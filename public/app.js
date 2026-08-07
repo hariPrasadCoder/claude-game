@@ -5,6 +5,7 @@
 import * as tictactoe from './games/tictactoe.js';
 import * as wordle from './games/wordle.js';
 import * as snake from './games/snake.js';
+import * as connectfour from './games/connectfour.js';
 
 const STATUS_POLL_MS = 1000;
 const HEARTBEAT_INTERVAL_MS = 3000;
@@ -13,6 +14,7 @@ const games = {
   tictactoe: { ...tictactoe, title: 'tic-tac-toe' },
   wordle: { ...wordle, title: 'wordle' },
   snake: { ...snake, title: 'snake' },
+  connectfour: { ...connectfour, title: 'connect-four' },
 };
 
 const root = document.getElementById('game-root');

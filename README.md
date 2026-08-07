@@ -2,7 +2,7 @@
 
 **You know the dinosaur game you play when your wifi dies? This is that — but for Claude Code.**
 
-Every time you submit a prompt, a terminal-styled game pops up in your browser: Tic-Tac-Toe, Wordle, or Snake. Play while Claude works. The moment it's done, the game tells you — instead of you nervously alt-tabbing back every four seconds to check.
+Every time you submit a prompt, a terminal-styled game pops up in your browser: Tic-Tac-Toe, Wordle, Snake, or Connect Four. Play while Claude works. The moment it's done, the game tells you — instead of you nervously alt-tabbing back every four seconds to check.
 
 > **Unofficial, community-built.** Not made or endorsed by Anthropic — it just talks to Claude Code's public [hooks](https://code.claude.com/docs/en/hooks) system, same as any other hook script.
 
@@ -12,7 +12,7 @@ npx github:hariPrasadCoder/claude-game
 
 No clone, no config, no npm install. Run that, submit your next prompt, and a tab opens.
 
-![claude-game menu — pick Tic-Tac-Toe, Wordle, Snake, or Random](docs/screenshot-menu.png)
+![claude-game menu — pick Tic-Tac-Toe, Wordle, Snake, Connect Four, or Random](docs/screenshot-menu.png)
 ![claude-game playing Wordle while the status bar shows Claude is working](docs/screenshot-wordle.png)
 
 ## Why
@@ -21,7 +21,7 @@ I kept tabbing away from Claude Code while it worked — Twitter, Slack, back, s
 
 ## Features
 
-- 🦖 **The loading-screen game, for Claude Code.** Tic-Tac-Toe, Wordle, Snake — pick one, or hit Random.
+- 🎮 **The loading-screen game, for Claude Code.** Tic-Tac-Toe, Wordle, Snake, Connect Four — pick one, or hit Random.
 - 🟠 **Looks like it belongs there.** Dark theme, monospace, terminal chrome — not some random webpage that popped up.
 - 🪶 **Zero dependencies.** Plain Node `http` server, vanilla JS frontend. No npm install, no bundler.
 - 🔌 **Install once, works everywhere.** Fires for every Claude Code session on your machine, any project.
@@ -55,7 +55,7 @@ node install.js
 
 Just use Claude Code normally. When you submit a prompt, a tab opens (or an existing one gets reused) showing a small terminal-styled menu:
 
-- pick **Tic-Tac-Toe**, **Wordle**, or **Snake**, or hit **🎲 Random**
+- pick **Tic-Tac-Toe**, **Wordle**, **Snake**, or **Connect Four**, or hit **Random**
 - the status line up top shows `● Claude is working…` while Claude's on your prompt, and flips to `✔ Claude is done` the moment it finishes — without interrupting whatever you're mid-game on
 - closing the tab is fine; it reopens next time you submit a prompt
 
