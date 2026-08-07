@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>claude-game</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20100%20100'%3E%3Crect%20width='100'%20height='100'%20rx='18'%20fill='%23141414'/%3E%3Ctext%20x='50'%20y='70'%20font-size='58'%20text-anchor='middle'%20font-family='monospace'%20fill='%23d97757'%3E%3E%3C/text%3E%3C/svg%3E" />
+<link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div class="terminal">
+    <div class="titlebar">
+      <span class="dot red"></span>
+      <span class="dot yellow"></span>
+      <span class="dot green"></span>
+      <span class="title" id="title-text">claude-game — menu</span>
+    </div>
+
+    <div class="statusbar">
+      <span id="status-dot" class="status-dot working"></span>
+      <span id="status-text">● Claude is working…</span>
+    </div>
+
+    <div id="done-banner" class="done-banner hidden">✔ Claude is done — nice game!</div>
+
+    <div id="game-root" class="game-root">
+      <div id="menu" class="menu">
+        <p class="menu-hint">pick something to play while Claude works</p>
+        <div class="menu-grid">
+          <button class="menu-btn" data-game="tictactoe">
+            <span class="menu-icon">✕ ○</span>
+            <span>Tic-Tac-Toe</span>
+          </button>
+          <button class="menu-btn" data-game="wordle">
+            <span class="menu-icon">▓▓▓▓▓</span>
+            <span>Wordle</span>
+          </button>
+          <button class="menu-btn" data-game="snake">
+            <span class="menu-icon">█▶ ●</span>
+            <span>Snake</span>
+          </button>
+          <button class="menu-btn" data-game="random">
+            <span class="menu-icon">🎲</span>
+            <span>Random</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <button id="back-btn" class="back-btn hidden">← menu</button>
+      <span class="footer-hint">claude-game runs locally, no data leaves your machine</span>
+    </div>
+  </div>
+
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

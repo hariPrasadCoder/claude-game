@@ -1,0 +1,24 @@
+{
+  "name": "claude-game",
+  "version": "1.0.0",
+  "description": "A lightweight, terminal-styled mini-game (Tic-Tac-Toe, Wordle, Snake) that pops up in your browser while Claude Code is working, and settles into a done state when it finishes.",
+  "license": "MIT",
+  "author": "HARI PRASAD",
+  "homepage": "https://github.com/hariPrasadCoder/claude-game#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hariPrasadCoder/claude-game.git"
+  },
+  "bugs": {
+    "url": "https://github.com/hariPrasadCoder/claude-game/issues"
+  },
+  "keywords": ["claude-code", "hooks", "game", "wordle", "tic-tac-toe", "snake", "cli-tools"],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "install-hooks": "node install.js",
+    "uninstall-hooks": "node uninstall.js"
+  }
+}

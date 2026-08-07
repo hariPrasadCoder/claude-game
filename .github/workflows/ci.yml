@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Syntax-check every JS file
+        run: find . -name "*.js" -not -path "./node_modules/*" -print0 | xargs -0 -n1 node -c
+
+      - name: Smoke test the server
+        run: |
+          node server.js &
+          SERVER_PID=$!
+          for i in $(seq 1 20); do
+            curl -sf http://127.0.0.1:47821/api/status > /dev/null && break
+            sleep 0.2
+          done
+          curl -sf http://127.0.0.1:47821/api/status
+          curl -sf http://127.0.0.1:47821/ > /dev/null
+          curl -sf http://127.0.0.1:47821/app.js > /dev/null
+          curl -sfX POST http://127.0.0.1:47821/api/heartbeat
+          curl -sf -X POST http://127.0.0.1:47821/api/event \
+            -H 'Content-Type: application/json' \
+            -d '{"sessionId":"ci","event":"prompt-submit"}'
+          kill $SERVER_PID
+
+      - name: Simulate hooks end-to-end
+        run: |
+          node server.js &
+          SERVER_PID=$!
+          for i in $(seq 1 20); do
+            curl -sf http://127.0.0.1:47821/api/status > /dev/null && break
+            sleep 0.2
+          done
+          echo '{"session_id":"ci-1","hook_event_name":"UserPromptSubmit"}' | node hooks/on-prompt-submit.js
+          echo '{"session_id":"ci-1","hook_event_name":"Stop"}' | node hooks/on-stop.js
+          echo '{"session_id":"ci-1","hook_event_name":"SessionEnd"}' | node hooks/on-session-end.js
+          kill $SERVER_PID
