@@ -1,4 +1,6 @@
 // Snake, rendered as a monospace character grid for the terminal feel.
+// The edges wrap (Pac-Man style) rather than killing you — only running
+// into your own body ends the game.
 'use strict';
 
 const COLS = 20;
@@ -34,11 +36,16 @@ function reset() {
 
 function tick() {
   dir = pendingDir;
-  const head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
+  // Wrap around the edges instead of dying on the wall — adding COLS/ROWS
+  // before the modulo keeps the result non-negative even when dir is -1
+  // (JS's % can otherwise return a negative remainder).
+  const head = {
+    x: (snake[0].x + dir.x + COLS) % COLS,
+    y: (snake[0].y + dir.y + ROWS) % ROWS,
+  };
 
-  const hitsWall = head.x < 0 || head.x >= COLS || head.y < 0 || head.y >= ROWS;
   const hitsSelf = snake.some((s) => s.x === head.x && s.y === head.y);
-  if (hitsWall || hitsSelf) {
+  if (hitsSelf) {
     over = true;
     clearInterval(timer);
     render();
@@ -60,7 +67,7 @@ function render() {
     <div class="snake-wrap">
       <div class="snake-status" id="snake-status"></div>
       <div class="snake-grid" id="snake-grid" style="grid-template-columns: repeat(${COLS}, 16px);"></div>
-      <div class="snake-hint">${over ? 'press R to restart' : 'arrow keys to steer'}</div>
+      <div class="snake-hint">${over ? 'press R to restart' : 'arrow keys to steer — wraps around the edges'}</div>
     </div>
   `;
   container.querySelector('#snake-status').textContent = over ? `game over — score ${score}` : `score ${score}`;
