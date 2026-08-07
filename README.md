@@ -72,6 +72,14 @@ existing one gets reused) showing a small terminal-styled menu:
   sessions (different terminals/projects) safely share one server without
   racing to kill it out from under each other — aggregate status only
   reads "done" once every tracked session has finished.
+- The `PreToolUse` hook (fires before every tool call) re-marks the
+  session "working". This is what keeps status correct when Claude
+  resumes work *without* a fresh `UserPromptSubmit` — e.g. after a
+  background subagent finishes or a scheduled wake-up — cases where
+  `Stop` already fired once (marking the session "done") but Claude is
+  now actively working again. It's a plain backgrounded `curl` rather
+  than a Node script since it fires constantly and needs to add ~nothing
+  to every tool call.
 - The `SessionEnd` hook drops a session from the tracked set entirely
   when you exit `claude`.
 - Runtime state (pidfile, logs) lives at `~/.claude-game/run/`, outside
@@ -115,6 +123,14 @@ entries pointing at this repo's `hooks/` directory. Confirm `node` is on
 your `PATH` — hook subprocesses sometimes inherit a minimal `PATH` that
 doesn't include nvm/homebrew installs (see [`hooks/common-env.sh`](hooks/common-env.sh),
 which tries to work around this).
+
+**Status says "done" but Claude is clearly still working.**
+This happens if Claude resumes work without a fresh `UserPromptSubmit`
+(e.g. after a background subagent finishes). The `PreToolUse` hook
+(`hooks/on-tool-use.sh`) is what re-syncs status the moment any tool
+runs — it needs `curl` on your `PATH`. Check it's installed
+(`command -v curl`) and that `PreToolUse` shows up in
+`~/.claude/settings.json`'s `hooks` key.
 
 **Port 47821 is already in use by something else.**
 Change `PORT` in `config.js`, then kill any running instance

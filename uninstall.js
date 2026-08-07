@@ -13,7 +13,7 @@ const REPO_ROOT = __dirname;
 const HOOKS_DIR = path.join(REPO_ROOT, 'hooks');
 const SETTINGS_FILE = path.join(os.homedir(), '.claude', 'settings.json');
 
-const EVENTS = ['UserPromptSubmit', 'Stop', 'SessionEnd'];
+const EVENTS = ['UserPromptSubmit', 'PreToolUse', 'Stop', 'SessionEnd'];
 
 function main() {
   if (!fs.existsSync(SETTINGS_FILE)) {

@@ -14,9 +14,14 @@ const SETTINGS_DIR = path.join(os.homedir(), '.claude');
 const SETTINGS_FILE = path.join(SETTINGS_DIR, 'settings.json');
 
 const EVENTS = [
-  { name: 'UserPromptSubmit', script: 'on-prompt-submit.sh' },
-  { name: 'Stop', script: 'on-stop.sh' },
-  { name: 'SessionEnd', script: 'on-session-end.sh' },
+  { name: 'UserPromptSubmit', script: 'on-prompt-submit.sh', timeout: 5 },
+  // Fires before every tool call — re-marks the session "working" so
+  // status doesn't stay stuck on "done" when Claude resumes without a
+  // fresh UserPromptSubmit (e.g. after a background subagent finishes).
+  // matcher "*" = every tool; timeout kept short since this is hot-path.
+  { name: 'PreToolUse', script: 'on-tool-use.sh', matcher: '*', timeout: 3 },
+  { name: 'Stop', script: 'on-stop.sh', timeout: 5 },
+  { name: 'SessionEnd', script: 'on-session-end.sh', timeout: 5 },
 ];
 
 function readSettings() {
@@ -63,7 +68,7 @@ function main() {
   let added = 0;
   let alreadyPresent = 0;
 
-  for (const { name, script } of EVENTS) {
+  for (const { name, script, matcher, timeout } of EVENTS) {
     const command = path.join(HOOKS_DIR, script);
     settings.hooks[name] = settings.hooks[name] || [];
 
@@ -72,9 +77,9 @@ function main() {
       continue;
     }
 
-    settings.hooks[name].push({
-      hooks: [{ type: 'command', command, timeout: 5 }],
-    });
+    const group = { hooks: [{ type: 'command', command, timeout }] };
+    if (matcher !== undefined) group.matcher = matcher;
+    settings.hooks[name].push(group);
     added++;
   }
 

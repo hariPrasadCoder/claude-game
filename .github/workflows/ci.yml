@@ -44,5 +44,9 @@ jobs:
           done
           echo '{"session_id":"ci-1","hook_event_name":"UserPromptSubmit"}' | node hooks/on-prompt-submit.js
           echo '{"session_id":"ci-1","hook_event_name":"Stop"}' | node hooks/on-stop.js
+          [ "$(curl -s http://127.0.0.1:47821/api/status | node -pe 'JSON.parse(require("fs").readFileSync(0)).status')" = "done" ]
+          echo '{"session_id":"ci-1","hook_event_name":"PreToolUse","tool_name":"Bash"}' | sh hooks/on-tool-use.sh
+          sleep 0.3
+          [ "$(curl -s http://127.0.0.1:47821/api/status | node -pe 'JSON.parse(require("fs").readFileSync(0)).status')" = "working" ]
           echo '{"session_id":"ci-1","hook_event_name":"SessionEnd"}' | node hooks/on-session-end.js
           kill $SERVER_PID

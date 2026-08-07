@@ -52,7 +52,12 @@ curl -s http://127.0.0.1:47821/api/status
 If you change `server.js`'s session/status logic, also check the
 multi-session case: fire `prompt-submit` for two different `sessionId`s,
 `stop` only one, and confirm `/api/status` still reports `"working"`
-until both are stopped. See the CI workflow
+until both are stopped. Also check the "resume without a prompt" case:
+`stop` a session (status → `done`), then simulate a `PreToolUse` call for
+it (`echo '{"session_id":"t1","hook_event_name":"PreToolUse"}' | sh hooks/on-tool-use.sh`)
+and confirm status flips back to `"working"` — that's what keeps status
+correct when Claude resumes after a background subagent or scheduled
+wake-up instead of a fresh prompt. See the CI workflow
 ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) for the exact
 commands that run on every PR.
 
