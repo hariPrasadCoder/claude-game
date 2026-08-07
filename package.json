@@ -12,9 +12,12 @@
   "bugs": {
     "url": "https://github.com/hariPrasadCoder/claude-game/issues"
   },
-  "keywords": ["claude-code", "hooks", "game", "wordle", "tic-tac-toe", "snake", "cli-tools"],
+  "keywords": ["claude-code", "hooks", "game", "wordle", "tic-tac-toe", "snake", "cli-tools", "productivity", "developer-tools"],
   "engines": {
     "node": ">=18"
+  },
+  "bin": {
+    "claude-game": "bin/cli.js"
   },
   "scripts": {
     "start": "node server.js",
