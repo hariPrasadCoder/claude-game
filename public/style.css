@@ -206,7 +206,12 @@ button { font-family: var(--mono); }
   display: grid;
   grid-template-rows: repeat(6, 1fr);
   gap: 6px;
-  margin-bottom: 16px;
+  /* A grid container is block-level and defaults to full parent width, so
+     without this its rows (fixed at 5*44px) sit left-aligned inside that
+     oversized box instead of centering. Shrinking to content width and
+     centering the block itself fixes it regardless of panel width. */
+  width: max-content;
+  margin: 0 auto 16px;
 }
 .wordle-row { display: grid; grid-template-columns: repeat(5, 44px); gap: 6px; }
 .wordle-tile {
