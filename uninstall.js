@@ -10,7 +10,7 @@ const os = require('os');
 const path = require('path');
 
 const SETTINGS_FILE = path.join(os.homedir(), '.claude', 'settings.json');
-const EVENTS = ['UserPromptSubmit', 'PreToolUse', 'Stop', 'SessionEnd'];
+const EVENTS = ['UserPromptSubmit', 'PreToolUse', 'Notification', 'Stop', 'SessionEnd'];
 
 // Matched by filename rather than by directory: hook commands can point
 // at a manual git clone, the stable ~/.claude-game/app copy (from an npx
@@ -18,7 +18,7 @@ const EVENTS = ['UserPromptSubmit', 'PreToolUse', 'Stop', 'SessionEnd'];
 // tool — a stale npx cache path. All of those are still unambiguously
 // "ours" by filename; matching this way means uninstall always finds
 // them regardless of where the app was actually running from.
-const SCRIPT_NAMES = new Set(['on-prompt-submit.sh', 'on-tool-use.sh', 'on-stop.sh', 'on-session-end.sh']);
+const SCRIPT_NAMES = new Set(['on-prompt-submit.sh', 'on-tool-use.sh', 'on-notification.sh', 'on-stop.sh', 'on-session-end.sh']);
 
 function main() {
   if (!fs.existsSync(SETTINGS_FILE)) {

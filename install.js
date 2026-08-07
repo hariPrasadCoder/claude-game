@@ -29,6 +29,11 @@ const EVENTS = [
   // fresh UserPromptSubmit (e.g. after a background subagent finishes).
   // matcher "*" = every tool; timeout kept short since this is hot-path.
   { name: 'PreToolUse', script: 'on-tool-use.sh', matcher: '*', timeout: 3 },
+  // Fires when Claude is blocked on you: a permission prompt, an
+  // AskUserQuestion-style question, or an idle nudge. Without this,
+  // status stays stuck on "working" the whole time you're just staring
+  // at an unanswered question.
+  { name: 'Notification', script: 'on-notification.sh', matcher: 'permission_prompt|agent_needs_input|idle_prompt', timeout: 5 },
   { name: 'Stop', script: 'on-stop.sh', timeout: 5 },
   { name: 'SessionEnd', script: 'on-session-end.sh', timeout: 5 },
 ];

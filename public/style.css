@@ -81,6 +81,7 @@ body {
   background: var(--accent);
 }
 .status-dot.working { animation: pulse 1.4s ease-in-out infinite; }
+.status-dot.waiting { background: var(--amber); animation: pulse 1.4s ease-in-out infinite; }
 .status-dot.done { background: var(--green); animation: none; }
 .status-dot.idle { background: var(--text-dim); animation: none; }
 
@@ -98,6 +99,7 @@ body {
   animation: slide-in 0.25s ease-out;
 }
 .done-banner.hidden { display: none; }
+.done-banner.waiting { background: rgba(217, 179, 84, 0.15); color: var(--amber); }
 
 @keyframes slide-in {
   from { transform: translateY(-8px); opacity: 0; }
@@ -243,6 +245,12 @@ button { font-family: var(--mono); }
   gap: 1px;
   background: var(--border);
   border: 1px solid var(--border);
+  /* Same fix as .wordle-grid: a block-level grid defaults to full parent
+     width, so without this its cells sit left-aligned instead of
+     centering — text-align:center on the wrapper only affects inline
+     content, not a block grid. */
+  width: max-content;
+  margin: 0 auto;
 }
 .snake-cell {
   width: 16px;

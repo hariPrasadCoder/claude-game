@@ -14,7 +14,7 @@ const cfg = require('./config');
 // State
 // ---------------------------------------------------------------------
 
-const sessions = new Map(); // sessionId -> { lastEventAt, state: "working"|"done" }
+const sessions = new Map(); // sessionId -> { lastEventAt, state: "working"|"waiting"|"done" }
 const startedAt = Date.now();
 // null means "no browser tab has ever sent a heartbeat" — deliberately
 // NOT initialized to startedAt. If it were, a freshly spawned server
@@ -33,8 +33,13 @@ function gcStaleSessions() {
 
 function deriveStatus() {
   gcStaleSessions();
-  if ([...sessions.values()].some((s) => s.state === 'working')) return 'working';
-  if (sessions.size > 0) return 'done';
+  const states = [...sessions.values()].map((s) => s.state);
+  if (states.includes('working')) return 'working';
+  // "waiting" (Claude blocked on a permission prompt, AskUserQuestion, or
+  // an idle nudge) takes priority over "done" — if any session needs you,
+  // that's more actionable than "everything's finished".
+  if (states.includes('waiting')) return 'waiting';
+  if (states.length > 0) return 'done';
   return 'idle';
 }
 
@@ -128,6 +133,11 @@ function handleEvent(req, res) {
         break;
       case 'stop':
         sessions.set(data.sessionId, { lastEventAt: now, state: 'done' });
+        break;
+      case 'notification':
+        // Claude hit a permission prompt, an AskUserQuestion-style
+        // question, or an idle nudge — it's blocked on you, not working.
+        sessions.set(data.sessionId, { lastEventAt: now, state: 'waiting' });
         break;
       case 'session-end':
         sessions.delete(data.sessionId);

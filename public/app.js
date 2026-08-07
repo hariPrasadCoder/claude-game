@@ -62,11 +62,20 @@ function applyStatus(status) {
   if (status === lastStatus) return;
   lastStatus = status;
   statusDot.className = `status-dot ${status}`;
+  doneBanner.classList.remove('waiting');
   if (status === 'working') {
     statusText.textContent = '● Claude is working…';
     doneBanner.classList.add('hidden');
+  } else if (status === 'waiting') {
+    // Claude is blocked on a permission prompt, a question, or an idle
+    // nudge — not working, not done, just waiting on you.
+    statusText.textContent = '⏸ Claude needs your input';
+    doneBanner.textContent = '⏸ Claude is waiting on you — check your terminal';
+    doneBanner.classList.add('waiting');
+    doneBanner.classList.remove('hidden');
   } else if (status === 'done') {
     statusText.textContent = '✔ Claude is done';
+    doneBanner.textContent = '✔ Claude is done — nice game!';
     doneBanner.classList.remove('hidden');
   } else {
     statusText.textContent = '○ idle';
