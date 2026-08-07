@@ -29,10 +29,22 @@ module.exports = {
   // How often the client polls for status changes.
   STATUS_POLL_MS: 1_000,
 
-  // A session (Claude Code prompt/turn) not heard from in this long is
-  // treated as abandoned (crash, force-quit) and garbage-collected so it
-  // can't wedge the aggregate status at "working" forever.
+  // A "done"/"waiting" session not heard from in this long is treated as
+  // abandoned and garbage-collected. Generous, since lingering here
+  // doesn't block anything — the derived status only reads "working" if
+  // some *other* session actually is.
   STALE_SESSION_MS: 30 * 60 * 1000,
+  // A "working" session gets a much shorter leash: PreToolUse pings on
+  // every tool call, so a real turn that's still genuinely working
+  // refreshes this constantly. A session claiming "working" with no
+  // fresh event in this long is almost certainly abandoned — a crashed
+  // Claude Code process, or leftover test data — and left at the longer
+  // STALE_SESSION_MS threshold it would wedge the aggregate status at
+  // "working" (nothing else demotes a "working" entry) for up to 30
+  // minutes, which is exactly the bug this constant exists to prevent.
+  WORKING_STALE_MS: process.env.CLAUDE_GAME_WORKING_STALE_MS
+    ? Number(process.env.CLAUDE_GAME_WORKING_STALE_MS)
+    : 5 * 60 * 1000,
   // The server only shuts itself down once nobody is working AND no tab
   // has sent a heartbeat in this long (i.e. everyone's actually gone).
   IDLE_TIMEOUT_MS: 10 * 60 * 1000,

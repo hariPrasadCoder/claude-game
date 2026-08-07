@@ -28,9 +28,10 @@ const startedAt = Date.now();
 let lastHeartbeatAt = null;
 
 function gcStaleSessions() {
-  const cutoff = Date.now() - cfg.STALE_SESSION_MS;
+  const now = Date.now();
   for (const [id, s] of sessions) {
-    if (s.lastEventAt < cutoff) sessions.delete(id);
+    const staleAfterMs = s.state === 'working' ? cfg.WORKING_STALE_MS : cfg.STALE_SESSION_MS;
+    if (now - s.lastEventAt > staleAfterMs) sessions.delete(id);
   }
 }
 
