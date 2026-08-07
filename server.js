@@ -16,7 +16,13 @@ const cfg = require('./config');
 
 const sessions = new Map(); // sessionId -> { lastEventAt, state: "working"|"done" }
 const startedAt = Date.now();
-let lastHeartbeatAt = startedAt;
+// null means "no browser tab has ever sent a heartbeat" — deliberately
+// NOT initialized to startedAt. If it were, a freshly spawned server
+// would look like it just had a tab open (heartbeat age ~0), which
+// tricks on-prompt-submit.js's "is a tab already open?" check into
+// skipping the browser open on the very first prompt — exactly the one
+// time we most need it to open.
+let lastHeartbeatAt = null;
 
 function gcStaleSessions() {
   const cutoff = Date.now() - cfg.STALE_SESSION_MS;
@@ -179,7 +185,11 @@ server.listen(cfg.PORT, cfg.HOST, () => {
 // a long while. Nothing external ever has to kill this process.
 setInterval(() => {
   const status = deriveStatus();
-  const idleFor = Date.now() - lastHeartbeatAt;
+  // If no heartbeat has ever arrived, measure idleness from server start
+  // (not from `null`, which would coerce to epoch 0 and make a
+  // brand-new server look maximally idle before a tab even had a
+  // chance to open).
+  const idleFor = Date.now() - (lastHeartbeatAt || startedAt);
   if (status !== 'working' && idleFor > cfg.IDLE_TIMEOUT_MS) {
     console.log('[claude-game] idle timeout reached, shutting down');
     cleanupAndExit(0);
