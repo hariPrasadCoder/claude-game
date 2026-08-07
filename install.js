@@ -1,7 +1,16 @@
 #!/usr/bin/env node
 // Wires claude-game's hooks into ~/.claude/settings.json for whoever runs
-// this, from wherever they cloned the repo. No dependencies, no network
-// calls — just a careful, idempotent JSON merge with a backup first.
+// this. No dependencies, no network calls — just a careful, idempotent
+// JSON merge with a backup first.
+//
+// Hook commands need a *stable* file path — Claude Code will call that
+// exact path forever, on every prompt. That's fine for `git clone` +
+// `node install.js`, but `npx github:hariPrasadCoder/claude-game` runs
+// from npm's own temp/npx cache, which can be evicted at any time
+// (`npm cache clean`, disk pressure, ...) and would silently break the
+// hooks. So: if we detect we're running from somewhere ephemeral, copy
+// the app to a stable home under ~/.claude-game first, and install hooks
+// pointing there instead.
 'use strict';
 
 const fs = require('fs');
@@ -9,7 +18,7 @@ const os = require('os');
 const path = require('path');
 
 const REPO_ROOT = __dirname;
-const HOOKS_DIR = path.join(REPO_ROOT, 'hooks');
+const STABLE_APP_DIR = path.join(os.homedir(), '.claude-game', 'app');
 const SETTINGS_DIR = path.join(os.homedir(), '.claude');
 const SETTINGS_FILE = path.join(SETTINGS_DIR, 'settings.json');
 
@@ -23,6 +32,47 @@ const EVENTS = [
   { name: 'Stop', script: 'on-stop.sh', timeout: 5 },
   { name: 'SessionEnd', script: 'on-session-end.sh', timeout: 5 },
 ];
+
+function isEphemeralLocation(dir) {
+  const normalized = fs.realpathSync(dir);
+  const tempRoots = [os.tmpdir(), '/tmp', '/var/folders']
+    .filter(Boolean)
+    .map((p) => {
+      try {
+        return fs.realpathSync(p);
+      } catch (_) {
+        return p;
+      }
+    });
+  return (
+    tempRoots.some((root) => normalized.startsWith(root + path.sep)) ||
+    // npx (npm), dlx (pnpm), and dlx (yarn) all cache fetched packages
+    // under a directory literally named one of these.
+    /[/\\](_npx|\.npm[/\\]_npx|\.pnpm-store|_dlx)[/\\]/.test(normalized)
+  );
+}
+
+// Copies the app (everything needed to run it) into a stable, permanent
+// location, skipping .git and other directories that don't matter at
+// runtime. Re-running this (e.g. `npx` on a newer commit) just replaces
+// the previous copy, so hook commands keep pointing at the same path.
+function copyToStableLocation() {
+  const SKIP = new Set(['.git', 'node_modules', '.github', '.playwright-mcp']);
+  fs.rmSync(STABLE_APP_DIR, { recursive: true, force: true });
+  fs.mkdirSync(STABLE_APP_DIR, { recursive: true });
+  fs.cpSync(REPO_ROOT, STABLE_APP_DIR, {
+    recursive: true,
+    filter: (src) => !SKIP.has(path.basename(src)),
+  });
+}
+
+function resolveInstallRoot() {
+  if (!isEphemeralLocation(REPO_ROOT)) return REPO_ROOT;
+  console.log(`Running from a temporary location (${REPO_ROOT}).`);
+  console.log(`Copying to ${STABLE_APP_DIR} so the hooks keep working after this cache is cleared…`);
+  copyToStableLocation();
+  return STABLE_APP_DIR;
+}
 
 function readSettings() {
   if (!fs.existsSync(SETTINGS_FILE)) return {};
@@ -48,9 +98,9 @@ function hasOurEntry(hookGroupArray, command) {
   return hookGroupArray.some((group) => (group.hooks || []).some((h) => h.command === command));
 }
 
-function ensureExecutable() {
+function ensureExecutable(hooksDir) {
   for (const { script } of EVENTS) {
-    const p = path.join(HOOKS_DIR, script);
+    const p = path.join(hooksDir, script);
     try {
       fs.chmodSync(p, 0o755);
     } catch (e) {
@@ -60,6 +110,9 @@ function ensureExecutable() {
 }
 
 function main() {
+  const installRoot = resolveInstallRoot();
+  const hooksDir = path.join(installRoot, 'hooks');
+
   fs.mkdirSync(SETTINGS_DIR, { recursive: true });
   const settings = readSettings();
   const backupPath = backupSettings();
@@ -69,7 +122,7 @@ function main() {
   let alreadyPresent = 0;
 
   for (const { name, script, matcher, timeout } of EVENTS) {
-    const command = path.join(HOOKS_DIR, script);
+    const command = path.join(hooksDir, script);
     settings.hooks[name] = settings.hooks[name] || [];
 
     if (hasOurEntry(settings.hooks[name], command)) {
@@ -84,9 +137,9 @@ function main() {
   }
 
   fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2) + '\n');
-  ensureExecutable();
+  ensureExecutable(hooksDir);
 
-  console.log(`✓ claude-game hooks installed from ${REPO_ROOT}`);
+  console.log(`✓ claude-game hooks installed from ${installRoot}`);
   if (backupPath) console.log(`  (backed up your previous settings to ${backupPath})`);
   if (added) console.log(`  added ${added} hook entr${added === 1 ? 'y' : 'ies'} to ${SETTINGS_FILE}`);
   if (alreadyPresent) console.log(`  ${alreadyPresent} hook entr${alreadyPresent === 1 ? 'y was' : 'ies were'} already installed, left as-is`);

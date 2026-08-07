@@ -1,19 +1,24 @@
 #!/usr/bin/env node
 // Removes claude-game's hook entries from ~/.claude/settings.json,
 // leaving everything else (your other hooks, model config, plugins,
-// etc.) untouched. Does not delete the repo or ~/.claude-game runtime
-// state — see README.md if you want those gone too.
+// etc.) untouched. Does not delete ~/.claude-game runtime/app state —
+// see README.md if you want that gone too.
 'use strict';
 
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
-const REPO_ROOT = __dirname;
-const HOOKS_DIR = path.join(REPO_ROOT, 'hooks');
 const SETTINGS_FILE = path.join(os.homedir(), '.claude', 'settings.json');
-
 const EVENTS = ['UserPromptSubmit', 'PreToolUse', 'Stop', 'SessionEnd'];
+
+// Matched by filename rather than by directory: hook commands can point
+// at a manual git clone, the stable ~/.claude-game/app copy (from an npx
+// install), or — if someone's upgrading from an older version of this
+// tool — a stale npx cache path. All of those are still unambiguously
+// "ours" by filename; matching this way means uninstall always finds
+// them regardless of where the app was actually running from.
+const SCRIPT_NAMES = new Set(['on-prompt-submit.sh', 'on-tool-use.sh', 'on-stop.sh', 'on-session-end.sh']);
 
 function main() {
   if (!fs.existsSync(SETTINGS_FILE)) {
@@ -35,7 +40,7 @@ function main() {
     if (!Array.isArray(settings.hooks[name])) continue;
     const before = settings.hooks[name].length;
     settings.hooks[name] = settings.hooks[name].filter((group) => {
-      const isOurs = (group.hooks || []).some((h) => typeof h.command === 'string' && h.command.startsWith(HOOKS_DIR));
+      const isOurs = (group.hooks || []).some((h) => typeof h.command === 'string' && SCRIPT_NAMES.has(path.basename(h.command)));
       return !isOurs;
     });
     removed += before - settings.hooks[name].length;
@@ -47,7 +52,7 @@ function main() {
   fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2) + '\n');
   console.log(`✓ removed ${removed} claude-game hook entr${removed === 1 ? 'y' : 'ies'} from ${SETTINGS_FILE}`);
   console.log('  (a backup of the previous file was saved alongside it)');
-  console.log(`\nTo also remove runtime state, run: rm -rf ${path.join(os.homedir(), '.claude-game')}`);
+  console.log(`\nTo also remove app/runtime state, run: rm -rf ${path.join(os.homedir(), '.claude-game')}`);
 }
 
 main();
