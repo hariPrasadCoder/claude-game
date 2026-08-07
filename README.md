@@ -14,7 +14,8 @@ No clone, no config, no npm install. Run that, submit your next prompt, and a ta
 
 ![claude-game demo — a terminal-styled menu pops up with Tic-Tac-Toe, Wordle, Snake, and Connect Four, then plays Wordle while the status bar shows Claude is working](docs/demo.gif)
 
-*(GIF a little soft? [Watch the MP4](docs/demo.mp4) instead.)*
+![claude-game menu — pick Tic-Tac-Toe, Wordle, Snake, Connect Four, or Random](docs/screenshot-menu.png)
+![claude-game playing Wordle while the status bar shows Claude is working](docs/screenshot-wordle.png)
 
 ## Why
 
