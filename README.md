@@ -1,35 +1,47 @@
 # claude-game
 
-A tiny, dependency-free mini-game that pops up in your browser while
-[Claude Code](https://claude.com/claude-code) is working, styled to look
-like the Claude Code terminal. Play Tic-Tac-Toe, Wordle, or Snake instead
-of watching a spinner — the page tells you the moment Claude's done and
-gets out of the way.
+**You know the dinosaur game you play when your wifi dies? This is that — but for Claude Code.**
 
-> **This is an unofficial, community-built project.** It is not made,
-> maintained, or endorsed by Anthropic. It just talks to Claude Code's
-> public [hooks](https://code.claude.com/docs/en/hooks) system, the same
-> way any other Claude Code hook script would.
+Every time you submit a prompt, a terminal-styled game pops up in your browser: Tic-Tac-Toe, Wordle, or Snake. Play while Claude works. The moment it's done, the game tells you — instead of you nervously alt-tabbing back every four seconds to check.
 
-![claude-game menu](docs/screenshot-menu.png)
-![claude-game playing Wordle while Claude works](docs/screenshot-wordle.png)
+> **Unofficial, community-built.** Not made or endorsed by Anthropic — it just talks to Claude Code's public [hooks](https://code.claude.com/docs/en/hooks) system, same as any other hook script.
+
+```sh
+npx github:hariPrasadCoder/claude-game
+```
+
+No clone, no config, no npm install. Run that, submit your next prompt, and a tab opens.
+
+![claude-game menu — pick Tic-Tac-Toe, Wordle, Snake, or Random](docs/screenshot-menu.png)
+![claude-game playing Wordle while the status bar shows Claude is working](docs/screenshot-wordle.png)
+
+## Why
+
+I kept tabbing away from Claude Code while it worked — Twitter, Slack, back, still working, repeat. So I had it build something to do *instead*: a game that shows up exactly when it starts thinking, and gets out of the way exactly when it's done. Built with Claude Code, running inside Claude Code, actively enabling you to procrastinate on the thing Claude Code is doing for you.
 
 ## Features
 
-- 🎮 Three games — Tic-Tac-Toe (vs. an unbeatable minimax AI), Wordle, and Snake
-- 🟠 Styled to match the Claude Code terminal — dark theme, monospace, terminal chrome
-- 🪶 Zero npm dependencies — plain Node `http` server, vanilla HTML/CSS/JS frontend
-- 🔌 Works from any project — install once, hooks fire globally for every Claude Code session
-- 🤝 Handles multiple concurrent Claude Code sessions safely (status only clears once *all* of them are done)
-- 🔒 Runs entirely on `127.0.0.1` — nothing leaves your machine
-
-## Requirements
-
-- Node.js 18+
-- macOS or Linux (Windows works under WSL or Git Bash — see [Troubleshooting](#troubleshooting))
-- [Claude Code](https://claude.com/claude-code) installed and configured
+- 🦖 **The loading-screen game, for Claude Code.** Tic-Tac-Toe, Wordle, Snake — pick one, or hit Random.
+- 🟠 **Looks like it belongs there.** Dark theme, monospace, terminal chrome — not some random webpage that popped up.
+- 🪶 **Zero dependencies.** Plain Node `http` server, vanilla JS frontend. No npm install, no bundler.
+- 🔌 **Install once, works everywhere.** Fires for every Claude Code session on your machine, any project.
+- 🤝 **Plays nice with multiple sessions.** Two terminals running Claude Code at once? Status only clears once both are actually done.
+- 🔒 **Never leaves your laptop.** Binds to `127.0.0.1`. No accounts, no telemetry, no cloud anything.
 
 ## Install
+
+```sh
+npx github:hariPrasadCoder/claude-game
+```
+
+This is the whole install. Behind the scenes it:
+- Adds `UserPromptSubmit`, `PreToolUse`, `Stop`, and `SessionEnd` hooks to `~/.claude/settings.json`
+- Copies itself to a stable home at `~/.claude-game/app` (so hooks keep working even after npm clears its temp cache — see [How it works](#how-it-works))
+- Backs up your existing `settings.json` first (`settings.json.bak-<timestamp>`)
+- Only ever *adds* to your hooks config — never touches your other settings, plugins, or existing hooks
+- Is safe to re-run any time — it won't create duplicate entries
+
+**Prefer to clone it?** Works the same way, and is the better option if you want to read the code or contribute:
 
 ```sh
 git clone https://github.com/hariPrasadCoder/claude-game.git
@@ -37,62 +49,30 @@ cd claude-game
 node install.js
 ```
 
-`install.js`:
-- Adds `UserPromptSubmit`, `Stop`, and `SessionEnd` hooks to `~/.claude/settings.json`, pointing at wherever you cloned the repo
-- Backs up your existing `settings.json` first (`settings.json.bak-<timestamp>`)
-- Only ever *adds* to your hooks config — it never touches your other settings, plugins, or existing hooks
-- Is safe to re-run — it won't create duplicate entries
-
-That's it. Start a Claude Code session anywhere on your machine and submit a prompt — a browser tab should open automatically.
+**Requirements:** Node.js 18+, macOS or Linux (Windows works under WSL or Git Bash — see [Troubleshooting](#troubleshooting)), and [Claude Code](https://claude.com/claude-code) itself.
 
 ## Usage
 
-Just use Claude Code normally. When you submit a prompt, a tab opens (or an
-existing one gets reused) showing a small terminal-styled menu:
+Just use Claude Code normally. When you submit a prompt, a tab opens (or an existing one gets reused) showing a small terminal-styled menu:
 
 - pick **Tic-Tac-Toe**, **Wordle**, or **Snake**, or hit **🎲 Random**
-- the status line at the top shows `● Claude is working…` while Claude's
-  on your prompt, and flips to `✔ Claude is done` the moment it finishes
-  — without interrupting whatever you're mid-game on
+- the status line up top shows `● Claude is working…` while Claude's on your prompt, and flips to `✔ Claude is done` the moment it finishes — without interrupting whatever you're mid-game on
 - closing the tab is fine; it reopens next time you submit a prompt
 
 ## How it works
 
-- `server.js` is a plain Node `http` server (no dependencies) that serves
-  the game and tracks whether any Claude Code session is currently
-  "working". It listens only on `127.0.0.1:47821`.
-- The `UserPromptSubmit` hook makes sure the server is running (starting
-  it as a detached background process if not) and opens a browser tab
-  unless one already seems to be open (based on a recent heartbeat from
-  the page).
-- The `Stop` hook marks that session as done. **It never kills the
-  server** — instead the server watches its own idle state and shuts
-  itself down once nobody's working *and* no browser tab has sent a
-  heartbeat in ~10 minutes. This means multiple concurrent Claude Code
-  sessions (different terminals/projects) safely share one server without
-  racing to kill it out from under each other — aggregate status only
-  reads "done" once every tracked session has finished.
-- The `PreToolUse` hook (fires before every tool call) re-marks the
-  session "working". This is what keeps status correct when Claude
-  resumes work *without* a fresh `UserPromptSubmit` — e.g. after a
-  background subagent finishes or a scheduled wake-up — cases where
-  `Stop` already fired once (marking the session "done") but Claude is
-  now actively working again. It's a plain backgrounded `curl` rather
-  than a Node script since it fires constantly and needs to add ~nothing
-  to every tool call.
-- The `SessionEnd` hook drops a session from the tracked set entirely
-  when you exit `claude`.
-- Runtime state (pidfile, logs) lives at `~/.claude-game/run/`, outside
-  the repo, so it survives independent of where you cloned it.
+- `server.js` is a plain Node `http` server (no dependencies) that serves the game and tracks whether any Claude Code session is currently "working". It listens only on `127.0.0.1:47821`.
+- `UserPromptSubmit` makes sure the server is running (starting it as a detached background process if not) and opens a browser tab unless one already seems to be open (based on a recent heartbeat from the page).
+- `Stop` marks that session as done. **It never kills the server** — instead the server watches its own idle state and shuts itself down once nobody's working *and* no browser tab has sent a heartbeat in ~10 minutes. Multiple concurrent Claude Code sessions safely share one server without racing to kill it out from under each other — aggregate status only reads "done" once every tracked session has finished.
+- `PreToolUse` (fires before every tool call) re-marks the session "working". This is what keeps status correct when Claude resumes without a fresh `UserPromptSubmit` — e.g. after a background subagent finishes. It's a plain backgrounded `curl` rather than a Node script since it fires constantly and needs to add ~nothing to tool call latency.
+- `SessionEnd` drops a session from the tracked set entirely when you exit `claude`.
+- Runtime state (pidfile, logs) lives at `~/.claude-game/run/`; the app itself (when installed via `npx`) lives at `~/.claude-game/app/` — both outside the repo, so it survives independent of where you cloned it or npm's own cache lifecycle.
 
-See [`install.js`](install.js), [`server.js`](server.js), and the
-[`hooks/`](hooks) directory for the actual implementation — it's short
-and meant to be read.
+See [`install.js`](install.js), [`server.js`](server.js), and [`hooks/`](hooks) for the actual implementation — it's short and meant to be read.
 
 ## Configuration
 
-Everything tunable lives in [`config.js`](config.js) — port, timeouts,
-polling intervals. If you change the port, restart the server:
+Everything tunable lives in [`config.js`](config.js) — port, timeouts, polling intervals. If you change the port, restart the server:
 
 ```sh
 kill "$(cat ~/.claude-game/run/server.pid)"
@@ -103,12 +83,11 @@ It'll be respawned automatically on your next prompt.
 ## Uninstall
 
 ```sh
-node uninstall.js
+node uninstall.js         # from a clone
+npx github:hariPrasadCoder/claude-game uninstall   # via npx
 ```
 
-This removes claude-game's hook entries from `~/.claude/settings.json`
-(backing the file up first) and leaves everything else untouched. To also
-remove runtime state:
+This removes claude-game's hook entries from `~/.claude/settings.json` (backing the file up first) and leaves everything else untouched. To also remove app/runtime state:
 
 ```sh
 rm -rf ~/.claude-game
@@ -117,31 +96,16 @@ rm -rf ~/.claude-game
 ## Troubleshooting
 
 **Nothing happens when I submit a prompt.**
-Check `~/.claude-game/run/server.log` for errors. Confirm the hooks are
-present: `cat ~/.claude/settings.json` should show a `hooks` key with
-entries pointing at this repo's `hooks/` directory. Confirm `node` is on
-your `PATH` — hook subprocesses sometimes inherit a minimal `PATH` that
-doesn't include nvm/homebrew installs (see [`hooks/common-env.sh`](hooks/common-env.sh),
-which tries to work around this).
+Check `~/.claude-game/run/server.log` for errors. Confirm the hooks are present: `cat ~/.claude/settings.json` should show a `hooks` key with entries pointing at `hooks/`. Confirm `node` is on your `PATH` — hook subprocesses sometimes inherit a minimal `PATH` that doesn't include nvm/homebrew installs (see [`hooks/common-env.sh`](hooks/common-env.sh), which tries to work around this).
 
 **Status says "done" but Claude is clearly still working.**
-This happens if Claude resumes work without a fresh `UserPromptSubmit`
-(e.g. after a background subagent finishes). The `PreToolUse` hook
-(`hooks/on-tool-use.sh`) is what re-syncs status the moment any tool
-runs — it needs `curl` on your `PATH`. Check it's installed
-(`command -v curl`) and that `PreToolUse` shows up in
-`~/.claude/settings.json`'s `hooks` key.
+This happens if Claude resumes work without a fresh `UserPromptSubmit` (e.g. after a background subagent finishes). The `PreToolUse` hook (`hooks/on-tool-use.sh`) is what re-syncs status the moment any tool runs — it needs `curl` on your `PATH`. Check it's installed (`command -v curl`).
 
 **Port 47821 is already in use by something else.**
-Change `PORT` in `config.js`, then kill any running instance
-(`kill "$(cat ~/.claude-game/run/server.pid)"`) so it restarts with the
-new port.
+Change `PORT` in `config.js`, then kill any running instance (`kill "$(cat ~/.claude-game/run/server.pid)"`) so it restarts with the new port.
 
 **Windows.**
-The hook scripts are POSIX shell (`hooks/*.sh`) and assume a Unix-like
-environment — they work under WSL or Git Bash, but not plain `cmd.exe`/
-PowerShell today. A native Windows hook dispatcher (`.cmd` or PowerShell)
-would be a welcome contribution — see [CONTRIBUTING.md](CONTRIBUTING.md).
+The hook scripts are POSIX shell (`hooks/*.sh`) — they work under WSL or Git Bash, but not plain `cmd.exe`/PowerShell today. A native Windows hook dispatcher would be a welcome contribution — see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 **I want to see it working without touching real hooks.**
 ```sh
@@ -157,9 +121,13 @@ curl -s http://127.0.0.1:47821/api/status
 
 ## Contributing
 
-Contributions are welcome — new games, a Windows-native hook dispatcher,
-bug fixes, whatever. See [CONTRIBUTING.md](CONTRIBUTING.md) for how the
-project is structured and how to add a game.
+New games, a Windows-native hook dispatcher, bug fixes — all welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for how the project is structured and how to add a game. It's a small, readable codebase on purpose; if you've ever wanted a low-stakes first PR to make, this is a good one.
+
+## Star History
+
+If this is saving your sanity during a long refactor, a ⭐ helps other people building with Claude Code actually find it.
+
+[![Star History Chart](https://api.star-history.com/svg?repos=hariPrasadCoder/claude-game&type=Date)](https://star-history.com/#hariPrasadCoder/claude-game&Date)
 
 ## License
 
